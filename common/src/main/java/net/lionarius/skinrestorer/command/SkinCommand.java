@@ -9,6 +9,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.lionarius.skinrestorer.SkinRestorer;
 import net.lionarius.skinrestorer.skin.SkinValue;
 import net.lionarius.skinrestorer.skin.SkinVariant;
+import net.lionarius.skinrestorer.skin.provider.LittleSkinProvider;
 import net.lionarius.skinrestorer.skin.provider.MojangSkinProvider;
 import net.lionarius.skinrestorer.skin.provider.SkinProvider;
 import net.lionarius.skinrestorer.skin.provider.SkinProviderContext;
@@ -89,6 +90,61 @@ public final class SkinCommand {
         return SkinCommand.setSubcommand(src, Collections.singleton(new NameAndId(profile)), context, save, false);
     }
     
+    private static void littleSkinReset(
+            CommandSourceStack src,
+            NameAndId nameAndId,
+            HashSet<ServerPlayer> updatedPlayers
+    ) {
+        var player = src.getServer().getPlayerList().getPlayer(nameAndId.id());
+        if (player == null)
+            return;
+
+        var skinStorage = SkinRestorer.getSkinStorage();
+        if (skinStorage.hasSavedSkin(nameAndId.id())) {
+            var savedSkinContext = skinStorage.getSkin(nameAndId.id()).toProviderContext();
+            if (savedSkinContext != null) {
+                if ("littleskin".equals(savedSkinContext.name())) {
+                    if (nameAndId.name().equals(savedSkinContext.argument())) {
+                        return;
+                    }
+                }
+            }
+        }
+
+        var provider = SkinRestorer.getProvider(LittleSkinProvider.PROVIDER_NAME).get();
+        var result = provider.fetchSkin(nameAndId.name(), null);
+        if (result.isSuccess()) {
+            var skinProperty = result.getSuccessValue().orElse(null);
+
+            if (skinProperty != null) {
+                var context = new SkinProviderContext(LittleSkinProvider.PROVIDER_NAME, nameAndId.name(), null);
+                var skinValue = SkinValue.fromProviderContextWithValue(context, skinProperty);
+                var updatedPlayer = SkinRestorer.applySkin(src.getServer(), Collections.singleton(player), skinValue, true);
+                updatedPlayers.addAll(updatedPlayer);
+            }
+        }
+    }
+    private static void mojangReset(
+            CommandSourceStack src,
+            NameAndId nameAndId,
+            HashSet<ServerPlayer> updatedPlayers
+    ) {
+        SkinValue skin = null;
+        if (SkinRestorer.getSkinStorage().hasSavedSkin(nameAndId.id()))
+            skin = SkinRestorer.getSkinStorage().getSkin(nameAndId.id()).replaceValueWithOriginal();
+        
+        if (skin == null)
+            return;
+        
+        var player = src.getServer().getPlayerList().getPlayer(nameAndId.id());
+        if (player == null)
+            return;
+        
+        var updatedPlayer = SkinRestorer.applySkin(src.getServer(), Collections.singleton(player), skin, false);
+        SkinRestorer.getSkinStorage().deleteSkin(nameAndId.id());
+        
+        updatedPlayers.addAll(updatedPlayer);
+    }
     private static int resetSubcommand(
             CommandSourceStack src,
             Collection<NameAndId> targets,
@@ -96,21 +152,21 @@ public final class SkinCommand {
     ) {
         var updatedPlayers = new HashSet<ServerPlayer>();
         for (var nameAndId : targets) {
-            SkinValue skin = null;
-            if (SkinRestorer.getSkinStorage().hasSavedSkin(nameAndId.id()))
-                skin = SkinRestorer.getSkinStorage().getSkin(nameAndId.id()).replaceValueWithOriginal();
-            
-            if (skin == null)
-                continue;
-            
-            var player = src.getServer().getPlayerList().getPlayer(nameAndId.id());
-            if (player == null)
-                continue;
-            
-            var updatedPlayer = SkinRestorer.applySkin(src.getServer(), Collections.singleton(player), skin, false);
-            SkinRestorer.getSkinStorage().deleteSkin(nameAndId.id());
-            
-            updatedPlayers.addAll(updatedPlayer);
+            try {
+                var response = net.lionarius.skinrestorer.util.WebUtils.executeRequest(
+                    java.net.http.HttpRequest.newBuilder()
+                        .uri(java.net.URI.create("https://api.mojang.com/minecraft/profile/lookup/name/" + nameAndId.name()))
+                        .GET()
+                        .build()
+                );
+                if (response.statusCode() == 200) {
+                    mojangReset(src, nameAndId, updatedPlayers);
+                } else {
+                    littleSkinReset(src, nameAndId, updatedPlayers);
+                }
+            } catch (Exception e) {
+                mojangReset(src, nameAndId, updatedPlayers);
+            }
         }
         
         SkinCommand.sendResponse(src, updatedPlayers, setByOperator);

@@ -11,7 +11,7 @@ import java.util.Set;
 public interface SkinProvider {
     EmptySkinProvider EMPTY = new EmptySkinProvider();
     MojangSkinProvider MOJANG = new MojangSkinProvider();
-    ElyBySkinProvider ELY_BY = new ElyBySkinProvider();
+    LittleSkinProvider LITTLESKIN = new LittleSkinProvider();
     MineskinSkinProvider MINESKIN = new MineskinSkinProvider();
     CollectionSkinProvider COLLECTION = new CollectionSkinProvider();
     SkinShuffleSkinProvider SKIN_SHUFFLE = new SkinShuffleSkinProvider();
@@ -19,7 +19,7 @@ public interface SkinProvider {
     Set<String> BUILTIN_PROVIDER_NAMES = ImmutableSet.of(
             EmptySkinProvider.PROVIDER_NAME,
             MojangSkinProvider.PROVIDER_NAME,
-            ElyBySkinProvider.PROVIDER_NAME,
+            LittleSkinProvider.PROVIDER_NAME,
             MineskinSkinProvider.PROVIDER_NAME,
             CollectionSkinProvider.PROVIDER_NAME,
             SkinShuffleSkinProvider.PROVIDER_NAME

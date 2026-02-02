@@ -24,9 +24,9 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-public final class ElyBySkinProvider implements SkinProvider {
+public final class LittleSkinProvider implements SkinProvider {
     
-    public static final String PROVIDER_NAME = "ely.by";
+    public static final String PROVIDER_NAME = "littleskin";
     
     private static final URI API_URI;
     
@@ -34,7 +34,7 @@ public final class ElyBySkinProvider implements SkinProvider {
     
     static {
         try {
-            API_URI = new URI("http://skinsystem.ely.by");
+            API_URI = new URI("https://littleskin.cn");
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
@@ -45,7 +45,7 @@ public final class ElyBySkinProvider implements SkinProvider {
     }
     
     private static void createCache() {
-        var config = SkinRestorer.getConfig().providersConfig().ely_by();
+        var config = SkinRestorer.getConfig().providersConfig().littleskin();
         var time = config.cache().enabled() ? config.cache().duration() : 0;
         
         SKIN_CACHE = CacheBuilder.newBuilder()
@@ -53,7 +53,7 @@ public final class ElyBySkinProvider implements SkinProvider {
                 .build(new CacheLoader<>() {
                     @Override
                     public @NotNull Optional<Property> load(@NotNull String key) throws Exception {
-                        return ElyBySkinProvider.loadSkin(key);
+                        return LittleSkinProvider.loadSkin(key);
                     }
                 });
     }
@@ -84,18 +84,21 @@ public final class ElyBySkinProvider implements SkinProvider {
         }
     }
     
-    private static Optional<Property> loadSkin(String username) throws Exception {
-        var profile = ElyBySkinProvider.getElyByProfile(username);
-        var textures = PlayerUtils.getPlayerSkin(profile);
+    public static Optional<Property> loadSkin(String username) throws Exception {
+        var profile = LittleSkinProvider.getLittleSkinProfile(username);
+        var skinData = LittleSkinProvider.extractSkinData(profile);
+        var signedProperty = MineskinSkinProvider.loadSkin(skinData.url().toURI(), skinData.variant());
         
-        return Optional.ofNullable(textures);
+        return signedProperty;
     }
     
-    private static GameProfile getElyByProfile(String username) throws IOException {
+    private static GameProfile getLittleSkinProfile(String username) throws IOException {
+        var uuid = LittleSkinProvider.getPlayerUuid(username);
+        
         var request = HttpRequest.newBuilder()
-                .uri(ElyBySkinProvider.API_URI
-                        .resolve("/textures/signed/")
-                        .resolve(username + "?unsigned=false")
+                .uri(API_URI
+                        .resolve("/api/yggdrasil/sessionserver/session/minecraft/profile/")
+                        .resolve(uuid + "?unsigned=true")
                 )
                 .GET()
                 .build();
@@ -107,5 +110,52 @@ public final class ElyBySkinProvider implements SkinProvider {
             throw new IllegalArgumentException("no profile with name " + username);
         
         return JsonUtils.fromJson(response.body(), MinecraftProfilePropertiesResponse.class).profile();
+    }
+    
+    private static String getPlayerUuid(String username) throws IOException {
+        var request = HttpRequest.newBuilder()
+                .uri(API_URI
+                        .resolve("/api/yggdrasil/api/users/profiles/minecraft/")
+                        .resolve(username)
+                )
+                .GET()
+                .build();
+        
+        var response = WebUtils.executeRequest(request);
+        WebUtils.throwOnClientErrors(response);
+        
+        if (response.statusCode() != 200)
+            throw new IllegalArgumentException("no user with name " + username);
+        
+        var json = JsonUtils.fromJson(response.body(), java.util.Map.class);
+        return (String) json.get("id");
+    }
+    
+    private static record SkinData(java.net.URL url, SkinVariant variant) {}
+    
+    private static SkinData extractSkinData(GameProfile profile) throws IOException {
+        var textures = PlayerUtils.getPlayerSkin(profile);
+        if (textures == null)
+            throw new IllegalArgumentException("no skin in profile");
+
+        var json = JsonUtils.fromJson(
+            new String(
+                java.util.Base64.getDecoder().decode(textures.value()),
+                java.nio.charset.StandardCharsets.UTF_8
+            ),
+            java.util.Map.class
+        );
+
+        var skin = (java.util.Map<String, Object>) ((java.util.Map<String, Object>) json.get("textures")).get("SKIN");
+
+        SkinVariant variant = SkinVariant.CLASSIC;
+        var metadataObj = skin.get("metadata");
+        if (metadataObj instanceof java.util.Map) {
+            if ("slim".equals(((java.util.Map<String, Object>) metadataObj).get("model"))) {
+                variant = SkinVariant.SLIM;
+            }
+        }
+
+        return new SkinData(new java.net.URL((String) skin.get("url")), variant);
     }
 }

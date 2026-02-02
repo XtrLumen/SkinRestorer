@@ -86,7 +86,7 @@ public final class SkinRestorer {
         SkinRestorer.providersRegistry.register(SkinShuffleSkinProvider.PROVIDER_NAME, SkinProvider.SKIN_SHUFFLE, false);
         
         SkinRestorer.registerDefaultSkinProvider(MojangSkinProvider.PROVIDER_NAME, SkinProvider.MOJANG, SkinRestorer.getConfig().providersConfig().mojang());
-        SkinRestorer.registerDefaultSkinProvider(ElyBySkinProvider.PROVIDER_NAME, SkinProvider.ELY_BY, SkinRestorer.getConfig().providersConfig().ely_by());
+        SkinRestorer.registerDefaultSkinProvider(LittleSkinProvider.PROVIDER_NAME, SkinProvider.LITTLESKIN, SkinRestorer.getConfig().providersConfig().littleskin());
         SkinRestorer.registerDefaultSkinProvider(MineskinSkinProvider.PROVIDER_NAME, SkinProvider.MINESKIN, SkinRestorer.getConfig().providersConfig().mineskin());
         SkinRestorer.registerDefaultSkinProvider(CollectionSkinProvider.PROVIDER_NAME, SkinProvider.COLLECTION, SkinRestorer.getConfig().providersConfig().collection());
     }
@@ -105,7 +105,7 @@ public final class SkinRestorer {
         WebUtils.recreateHttpClient();
         
         MojangSkinProvider.reload();
-        ElyBySkinProvider.reload();
+        LittleSkinProvider.reload();
         MineskinSkinProvider.reload();
         CollectionSkinProvider.reload();
     }

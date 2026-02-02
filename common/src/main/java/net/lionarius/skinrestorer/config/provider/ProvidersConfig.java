@@ -7,19 +7,19 @@ import net.lionarius.skinrestorer.util.gson.GsonPostProcessable;
 public final class ProvidersConfig implements GsonPostProcessable {
     public static final ProvidersConfig DEFAULT = new ProvidersConfig(
             new MojangProviderConfig(),
-            new ElyByProviderConfig(),
+            new LittleSkinProviderConfig(),
             new MineskinProviderConfig(),
             new CollectionProviderConfig()
     );
     
     private MojangProviderConfig mojang;
-    private ElyByProviderConfig ely_by;
+    private LittleSkinProviderConfig littleskin;
     private MineskinProviderConfig mineskin;
     private CollectionProviderConfig collection;
     
-    public ProvidersConfig(MojangProviderConfig mojang, ElyByProviderConfig ely_by, MineskinProviderConfig mineskin, CollectionProviderConfig collection) {
+    public ProvidersConfig(MojangProviderConfig mojang, LittleSkinProviderConfig littleskin, MineskinProviderConfig mineskin, CollectionProviderConfig collection) {
         this.mojang = mojang;
-        this.ely_by = ely_by;
+        this.littleskin = littleskin;
         this.mineskin = mineskin;
         this.collection = collection;
     }
@@ -28,8 +28,8 @@ public final class ProvidersConfig implements GsonPostProcessable {
         return this.mojang;
     }
     
-    public ElyByProviderConfig ely_by() {
-        return this.ely_by;
+    public LittleSkinProviderConfig littleskin() {
+        return this.littleskin;
     }
     
     public MineskinProviderConfig mineskin() {
@@ -47,9 +47,9 @@ public final class ProvidersConfig implements GsonPostProcessable {
             this.mojang = ProvidersConfig.DEFAULT.mojang();
         }
         
-        if (this.ely_by == null) {
-            SkinRestorer.LOGGER.warn("Ely.By provider config is null, using default");
-            this.ely_by = ProvidersConfig.DEFAULT.ely_by();
+        if (this.littleskin == null) {
+            SkinRestorer.LOGGER.warn("LittleSkin provider config is null, using default");
+            this.littleskin = ProvidersConfig.DEFAULT.littleskin();
         }
         
         if (this.mineskin == null) {

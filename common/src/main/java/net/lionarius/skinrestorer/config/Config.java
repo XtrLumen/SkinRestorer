@@ -14,7 +14,7 @@ public final class Config implements GsonPostProcessable {
     public static final String CONFIG_FILENAME = "config.json";
     
     
-    private String language = "en_us";
+    private String language = "zh_cn";
     
     private boolean refreshSkinOnJoin = true;
     
@@ -90,8 +90,8 @@ public final class Config implements GsonPostProcessable {
     @Override
     public void gsonPostProcess() {
         if (this.language == null || this.language.isEmpty()) {
-            SkinRestorer.LOGGER.warn("Language config is null or empty, defaulting to 'en_us'");
-            this.language = "en_us";
+            SkinRestorer.LOGGER.warn("Language config is null or empty, defaulting to 'zh_cn'");
+            this.language = "zh_cn";
         }
         
         if (this.skinApplyDelayOnJoin < 0) {
