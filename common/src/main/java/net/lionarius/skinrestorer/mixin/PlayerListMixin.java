@@ -56,37 +56,7 @@ public abstract class PlayerListMixin {
     
     @Unique
     private static void skinrestorer$tryApplySkin(MinecraftServer server, ServerPlayer player) {
-        if (SkinRestorer.getSkinStorage().hasSavedSkin(player.getUUID())) {
-            var savedSkin = SkinRestorer.getSkinStorage().getSkin(player.getUUID());
-            var property = savedSkin.value();
-            if (property == null || property.value() == null || property.value().isEmpty()) {
-                return;
-            }
-            SkinRestorer.applySkin(server, Collections.singleton(player), savedSkin);
-            return;
-        }
-
-        var playerName = player.getGameProfile().name();
-        
-        try {
-            var request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("https://api.mojang.com/minecraft/profile/lookup/name/" + playerName))
-                    .GET()
-                    .build();
-
-            var response = net.lionarius.skinrestorer.util.WebUtils.executeRequest(request);
-            
-            if (response.statusCode() != 200) {
-                SkinRestorer.setSkinAsync(server, Collections.singleton(player),
-                    new net.lionarius.skinrestorer.skin.provider.SkinProviderContext(
-                        net.lionarius.skinrestorer.skin.provider.LittleSkinProvider.PROVIDER_NAME,
-                        playerName,
-                        null
-                    ),  true
-                );
-            }
-        } catch (Exception e) {
-            return;
-        }
+        if (SkinRestorer.getSkinStorage().hasSavedSkin(player.getUUID()))
+            SkinRestorer.applySkin(server, Collections.singleton(player), SkinRestorer.getSkinStorage().getSkin(player.getUUID()));
     }
 }

@@ -57,15 +57,42 @@ public abstract class ServerLoginPacketListenerImplMixin {
                 var config = SkinRestorer.getConfig();
                 var provider = config.firstJoinSkinProvider();
                 
-                var shouldFetch = (originalSkin == null && config.fetchSkinOnFirstJoin()) ||
-                                      (originalSkin != null && config.forceFirstJoinSkinFetch() && provider != FirstJoinSkinProvider.MOJANG);
+                boolean isLittleSkinPlayer;
+                try {
+                    var request = java.net.http.HttpRequest.newBuilder()
+                            .uri(java.net.URI.create("https://api.mojang.com/minecraft/profile/lookup/name/" + profile.name()))
+                            .GET()
+                            .build();
+
+                    var response = net.lionarius.skinrestorer.util.WebUtils.executeRequest(request);
+                    isLittleSkinPlayer = response.statusCode() != 200;
+                } catch (Exception e) {
+                    isLittleSkinPlayer = false;
+                }
+                
+                boolean isOfflinePlayer = originalSkin == null;
+                boolean shouldFetchForLittleSkin = isLittleSkinPlayer && config.fetchSkinOnFirstJoin();
+                
+                var shouldFetch = (isOfflinePlayer && config.fetchSkinOnFirstJoin()) ||
+                                  (originalSkin != null && config.forceFirstJoinSkinFetch() && provider != FirstJoinSkinProvider.MOJANG) ||
+                                  shouldFetchForLittleSkin;
                 
                 if (shouldFetch) {
-                    var context = new SkinProviderContext(
+                    SkinProviderContext context;
+                    if (isLittleSkinPlayer) {
+                        context = new SkinProviderContext(
+                            net.lionarius.skinrestorer.skin.provider.LittleSkinProvider.PROVIDER_NAME,
+                            profile.name(),
+                            null
+                        );
+                    } else {
+                        context = new SkinProviderContext(
                             provider.getName(),
                             profile.name(),
                             null
-                    );
+                        );
+                    }
+                    
                     skinrestorer$fetchSkin(profile, context);
                 }
                 
